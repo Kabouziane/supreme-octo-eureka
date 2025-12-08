@@ -3,22 +3,26 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api
 const ACCESS_KEY = 'accessToken';
 const REFRESH_KEY = 'refreshToken';
 const USER_KEY = 'username';
+const STAFF_KEY = 'isStaff';
 
 export const getAccessToken = () => localStorage.getItem(ACCESS_KEY);
 export const getRefreshToken = () => localStorage.getItem(REFRESH_KEY);
 export const getUsername = () => localStorage.getItem(USER_KEY);
 
-export const setSession = ({ access, refresh, username }) => {
+export const setSession = ({ access, refresh, username, isStaff }) => {
   if (access) localStorage.setItem(ACCESS_KEY, access);
   if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
   if (username) localStorage.setItem(USER_KEY, username);
+  if (typeof isStaff === 'boolean') localStorage.setItem(STAFF_KEY, String(isStaff));
 };
 
 export const clearSession = () => {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(STAFF_KEY);
 };
+export const getIsStaff = () => localStorage.getItem(STAFF_KEY) === 'true';
 
 const parseError = async (response) => {
   try {

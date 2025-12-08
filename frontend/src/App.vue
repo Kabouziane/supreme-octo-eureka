@@ -3,7 +3,9 @@ import { RouterLink, RouterView, useRoute } from 'vue-router';
 import { useAuth } from './composables/useAuth';
 
 const route = useRoute();
-const { state, isAuthenticated, logout } = useAuth();
+const { state, isAuthenticated, isStaff, logout, fetchProfile } = useAuth();
+
+fetchProfile();
 
 const links = [
   { to: '/', label: 'Produits' },
@@ -24,6 +26,13 @@ const links = [
           :class="[{ active: route.path === link.to }, 'nav-link']"
         >
           {{ link.label }}
+        </RouterLink>
+        <RouterLink
+          v-if="isStaff"
+          to="/admin/products"
+          :class="[{ active: route.path === '/admin/products' }, 'nav-link']"
+        >
+          Admin
         </RouterLink>
       </nav>
       <div class="auth">

@@ -59,6 +59,12 @@ onMounted(loadProducts);
     <div v-else class="grid products-grid">
       <article v-for="product in products" :key="product.id" class="product">
         <div class="product-title">{{ product.name }}</div>
+        <img
+          v-if="product.image_url"
+          :src="product.image_url"
+          alt="product"
+          style="width: 100%; border-radius: 12px; object-fit: cover; max-height: 160px"
+        />
         <div class="muted">{{ product.description || 'Aucune description' }}</div>
         <div class="price">{{ product.price }} €</div>
         <div class="muted">Stock : {{ product.stock }}</div>
