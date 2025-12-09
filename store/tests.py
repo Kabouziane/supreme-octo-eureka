@@ -76,3 +76,31 @@ class EcommerceAPITests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         order = Order.objects.get(id=order_id)
         self.assertEqual(order.status, Order.STATUS_PAID)
+
+    def test_preparation_flow(self):
+        # user creates order
+        self.authenticate(self.user)
+        Cart.objects.get_or_create(user=self.user)
+        CartItem.objects.create(cart=self.user.cart, product=self.product, quantity=2)
+        order_resp = self.client.post(reverse('order-list'), {}, format='json')
+        order_id = order_resp.data['id']
+
+        # staff pays then prepares
+        self.client.force_authenticate(user=self.admin)
+        self.client.post(reverse('order-pay', args=[order_id]), {}, format='json')
+        prepare_url = reverse('order-prepare', args=[order_id])
+        resp = self.client.post(
+            prepare_url,
+            {
+                'items': [
+                    {
+                        'id': Order.objects.get(id=order_id).items.first().id,
+                        'prepared_quantity': 2,
+                    }
+                ]
+            },
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        order = Order.objects.get(id=order_id)
+        self.assertEqual(order.status, Order.STATUS_PREPARED)

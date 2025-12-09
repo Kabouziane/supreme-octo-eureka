@@ -12,6 +12,7 @@ from .serializers import (
     CartSerializer,
     OrderSerializer,
     OrderStatusUpdateSerializer,
+    PreparationItemSerializer,
     ProductSerializer,
     RegisterSerializer,
 )
@@ -126,4 +127,47 @@ class OrderViewSet(
         serializer = OrderStatusUpdateSerializer(order, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(OrderSerializer(order).data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def prepare(self, request, pk=None):
+        order = self.get_object()
+        if order.status not in [Order.STATUS_PAID, Order.STATUS_PREPARED]:
+            return Response(
+                {'detail': 'Order must be paid before preparation.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        items_data = request.data.get('items', [])
+        serializer = PreparationItemSerializer(data=items_data, many=True)
+        serializer.is_valid(raise_exception=True)
+
+        items_map = {item.id: item for item in order.items.all()}
+        for item_data in serializer.validated_data:
+            item_id = item_data['id']
+            prepared_qty = item_data['prepared_quantity']
+            item = items_map.get(item_id)
+            if not item:
+                continue
+            item.prepared_quantity = min(prepared_qty, item.quantity)
+            item.save(update_fields=['prepared_quantity'])
+
+        order.update_preparation_status()
+        return Response(OrderSerializer(order).data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def ready_to_ship(self, request, pk=None):
+        order = self.get_object()
+        if order.status != Order.STATUS_PREPARED:
+            return Response({'detail': 'Order must be prepared first.'}, status=status.HTTP_400_BAD_REQUEST)
+        order.status = Order.STATUS_READY_TO_SHIP
+        order.save(update_fields=['status', 'updated_at'])
+        return Response(OrderSerializer(order).data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def ship(self, request, pk=None):
+        order = self.get_object()
+        if order.status not in [Order.STATUS_READY_TO_SHIP, Order.STATUS_PREPARED, Order.STATUS_PAID]:
+            return Response({'detail': 'Order not ready to ship.'}, status=status.HTTP_400_BAD_REQUEST)
+        order.status = Order.STATUS_SHIPPED
+        order.save(update_fields=['status', 'updated_at'])
         return Response(OrderSerializer(order).data)

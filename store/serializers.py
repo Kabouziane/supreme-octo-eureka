@@ -89,11 +89,19 @@ class CartSerializer(serializers.ModelSerializer):
 class OrderItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
     subtotal = serializers.SerializerMethodField()
+    prepared_quantity = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = ('id', 'product', 'quantity', 'unit_price', 'subtotal')
-        read_only_fields = ('id', 'product', 'unit_price', 'subtotal')
+        fields = (
+            'id',
+            'product',
+            'quantity',
+            'prepared_quantity',
+            'unit_price',
+            'subtotal',
+        )
+        read_only_fields = ('id', 'product', 'unit_price', 'subtotal', 'prepared_quantity')
 
     def get_subtotal(self, obj):
         return obj.subtotal.quantize(Decimal('0.01'))
@@ -128,3 +136,8 @@ class OrderStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ('status',)
+
+
+class PreparationItemSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    prepared_quantity = serializers.IntegerField(min_value=0)

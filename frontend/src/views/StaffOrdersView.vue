@@ -9,7 +9,7 @@ const loading = ref(false);
 const error = ref('');
 const refreshInterval = ref(null);
 
-const statusOptions = ['pending', 'paid', 'shipped', 'cancelled'];
+const statusOptions = ['pending', 'paid', 'prepared', 'ready_to_ship', 'shipped', 'cancelled'];
 
 const loadOrders = async () => {
   if (!isAuthenticated.value || !isStaff.value) return;
@@ -31,6 +31,45 @@ const updateStatus = async (orderId, status) => {
       method: 'PATCH',
       body: { status },
     });
+    await loadOrders();
+  } catch (err) {
+    error.value = err.message;
+  }
+};
+
+const submitPreparation = async (order) => {
+  error.value = '';
+  const payload = {
+    items: order.items.map((item) => ({
+      id: item.id,
+      prepared_quantity: item.prepared_quantity ?? 0,
+    })),
+  };
+  try {
+    await request(`/orders/${order.id}/prepare/`, {
+      method: 'POST',
+      body: payload,
+    });
+    await loadOrders();
+  } catch (err) {
+    error.value = err.message;
+  }
+};
+
+const markReadyToShip = async (orderId) => {
+  error.value = '';
+  try {
+    await request(`/orders/${orderId}/ready_to_ship/`, { method: 'POST' });
+    await loadOrders();
+  } catch (err) {
+    error.value = err.message;
+  }
+};
+
+const markShipped = async (orderId) => {
+  error.value = '';
+  try {
+    await request(`/orders/${orderId}/ship/`, { method: 'POST' });
     await loadOrders();
   } catch (err) {
     error.value = err.message;
@@ -75,18 +114,32 @@ onUnmounted(() => {
           <li v-for="item in order.items" :key="item.id" class="list-item">
             <div class="product-title">{{ item.product.name }}</div>
             <div class="muted">x{{ item.quantity }}</div>
+            <div class="muted">Préparé : {{ item.prepared_quantity || 0 }}</div>
+            <input
+              class="input"
+              type="number"
+              min="0"
+              :max="item.quantity"
+              v-model.number="item.prepared_quantity"
+            />
           </li>
         </ul>
-        <div class="form-row" style="margin-top: 12px">
-          <select
-            class="select"
-            :value="order.status"
-            @change="(e) => updateStatus(order.id, e.target.value)"
+        <div class="form-row" style="margin-top: 12px; gap: 8px">
+          <button class="primary" @click="submitPreparation(order)">Valider préparation</button>
+          <button
+            class="ghost"
+            v-if="order.status === 'prepared'"
+            @click="markReadyToShip(order.id)"
           >
-            <option v-for="status in statusOptions" :key="status" :value="status">
-              {{ status }}
-            </option>
-          </select>
+            Marquer à distribuer
+          </button>
+          <button
+            class="ghost"
+            v-if="order.status === 'ready_to_ship'"
+            @click="markShipped(order.id)"
+          >
+            Envoyer par poste
+          </button>
         </div>
       </article>
     </div>

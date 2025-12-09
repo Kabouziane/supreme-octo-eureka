@@ -52,11 +52,15 @@ class CartItem(models.Model):
 class Order(models.Model):
     STATUS_PENDING = 'pending'
     STATUS_PAID = 'paid'
+    STATUS_PREPARED = 'prepared'
+    STATUS_READY_TO_SHIP = 'ready_to_ship'
     STATUS_SHIPPED = 'shipped'
     STATUS_CANCELLED = 'cancelled'
     STATUS_CHOICES = [
         (STATUS_PENDING, 'Pending'),
         (STATUS_PAID, 'Paid'),
+        (STATUS_PREPARED, 'Prepared'),
+        (STATUS_READY_TO_SHIP, 'Ready to Ship'),
         (STATUS_SHIPPED, 'Shipped'),
         (STATUS_CANCELLED, 'Cancelled'),
     ]
@@ -81,12 +85,19 @@ class Order(models.Model):
         self.total_amount = total.quantize(Decimal('0.01'))
         self.save(update_fields=['total_amount'])
 
+    def update_preparation_status(self) -> None:
+        items = list(self.items.all())
+        if items and all(item.prepared_quantity >= item.quantity for item in items):
+            self.status = self.STATUS_PREPARED
+            self.save(update_fields=['status', 'updated_at'])
+
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    prepared_quantity = models.PositiveIntegerField(default=0)
 
     def __str__(self) -> str:
         return f"{self.product} x{self.quantity}"
