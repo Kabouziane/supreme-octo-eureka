@@ -27,13 +27,20 @@ const links = [
         >
           {{ link.label }}
         </RouterLink>
-        <RouterLink
-          v-if="isStaff"
-          to="/admin/products"
-          :class="[{ active: route.path === '/admin/products' }, 'nav-link']"
-        >
-          Admin
-        </RouterLink>
+        <template v-if="isStaff">
+          <RouterLink
+            to="/admin/products"
+            :class="[{ active: route.path === '/admin/products' }, 'nav-link']"
+          >
+            Admin produits
+          </RouterLink>
+          <RouterLink
+            to="/staff/orders"
+            :class="[{ active: route.path === '/staff/orders' }, 'nav-link']"
+          >
+            Commandes staff
+          </RouterLink>
+        </template>
       </nav>
       <div class="auth">
         <template v-if="isAuthenticated">

@@ -5,6 +5,7 @@ import OrdersView from '../views/OrdersView.vue';
 import ProductsView from '../views/ProductsView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import AdminProductsView from '../views/AdminProductsView.vue';
+import StaffOrdersView from '../views/StaffOrdersView.vue';
 
 const routes = [
   { path: '/', name: 'products', component: ProductsView },
@@ -13,6 +14,7 @@ const routes = [
   { path: '/cart', name: 'cart', component: CartView },
   { path: '/orders', name: 'orders', component: OrdersView },
   { path: '/admin/products', name: 'admin-products', component: AdminProductsView },
+  { path: '/staff/orders', name: 'staff-orders', component: StaffOrdersView },
 ];
 
 const router = createRouter({

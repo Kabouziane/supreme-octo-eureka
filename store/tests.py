@@ -63,3 +63,16 @@ class EcommerceAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Order.objects.filter(user=self.user).count(), 1)
         self.assertEqual(self.user.cart.items.count(), 0)
+
+    def test_pay_order(self):
+        self.authenticate()
+        Cart.objects.get_or_create(user=self.user)
+        CartItem.objects.create(cart=self.user.cart, product=self.product, quantity=1)
+        order_resp = self.client.post(reverse('order-list'), {}, format='json')
+        order_id = order_resp.data['id']
+
+        pay_url = reverse('order-pay', args=[order_id])
+        resp = self.client.post(pay_url, {}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        order = Order.objects.get(id=order_id)
+        self.assertEqual(order.status, Order.STATUS_PAID)

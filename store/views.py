@@ -11,6 +11,7 @@ from .serializers import (
     CartItemSerializer,
     CartSerializer,
     OrderSerializer,
+    OrderStatusUpdateSerializer,
     ProductSerializer,
     RegisterSerializer,
 )
@@ -106,3 +107,23 @@ class OrderViewSet(
         items.delete()
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def pay(self, request, pk=None):
+        order = self.get_object()
+        if order.user != request.user and not request.user.is_staff:
+            return Response({'detail': 'Not allowed.'}, status=status.HTTP_403_FORBIDDEN)
+        if order.status != Order.STATUS_PENDING:
+            return Response({'detail': 'Order not pending.'}, status=status.HTTP_400_BAD_REQUEST)
+        order.status = Order.STATUS_PAID
+        order.save(update_fields=['status', 'updated_at'])
+        serializer = self.get_serializer(order)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAdminUser])
+    def set_status(self, request, pk=None):
+        order = self.get_object()
+        serializer = OrderStatusUpdateSerializer(order, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(OrderSerializer(order).data)

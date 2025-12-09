@@ -53,27 +53,37 @@ const refreshAccessToken = async () => {
 
 export const request = async (path, { method = 'GET', body, headers = {} } = {}) => {
   const token = getAccessToken();
-  const baseHeaders = {
+  const buildHeaders = (authToken) => ({
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-  const doFetch = async () =>
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    ...headers,
+  });
+  const doFetch = async (authToken) =>
     fetch(`${API_BASE}${path}`, {
       method,
-      headers: { ...baseHeaders, ...headers },
+      headers: buildHeaders(authToken),
       body: body ? JSON.stringify(body) : undefined,
     });
 
-  let response = await doFetch();
+  let response = await doFetch(token);
 
   if (response.status === 401 && getRefreshToken()) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      response = await doFetch();
+      response = await doFetch(refreshed);
     } else {
       clearSession();
-      throw new Error('Session expired. Please log in again.');
     }
+  }
+
+  if (response.status === 401) {
+    // clear stale tokens and retry once without auth for public endpoints
+    clearSession();
+    const fallback = await doFetch(null);
+    if (fallback.ok) {
+      return fallback.status === 204 ? null : fallback.json();
+    }
+    response = fallback;
   }
 
   if (!response.ok) {

@@ -21,6 +21,16 @@ const loadOrders = async () => {
   }
 };
 
+const payOrder = async (orderId) => {
+  error.value = '';
+  try {
+    await request(`/orders/${orderId}/pay/`, { method: 'POST' });
+    await loadOrders();
+  } catch (err) {
+    error.value = err.message;
+  }
+};
+
 onMounted(loadOrders);
 </script>
 
@@ -51,6 +61,9 @@ onMounted(loadOrders);
             <div class="price">{{ item.subtotal }} €</div>
           </li>
         </ul>
+        <div v-if="order.status === 'pending'" class="actions" style="margin-top: 12px">
+          <button class="primary" @click="payOrder(order.id)">Valider paiement (test)</button>
+        </div>
       </article>
     </div>
   </section>

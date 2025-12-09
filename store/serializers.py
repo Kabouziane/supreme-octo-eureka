@@ -104,11 +104,14 @@ class OrderSerializer(serializers.ModelSerializer):
     total_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, read_only=True
     )
+    status = serializers.CharField(read_only=True)
+    user = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = (
             'id',
+            'user',
             'status',
             'total_amount',
             'placed_at',
@@ -116,3 +119,12 @@ class OrderSerializer(serializers.ModelSerializer):
             'items',
         )
         read_only_fields = ('id', 'total_amount', 'placed_at', 'updated_at', 'items')
+
+    def get_user(self, obj):
+        return {'id': obj.user_id, 'username': getattr(obj.user, 'username', None)}
+
+
+class OrderStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ('status',)
